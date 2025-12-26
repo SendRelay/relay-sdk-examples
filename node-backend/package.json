@@ -1,0 +1,25 @@
+{
+  "name": "relay-node-backend-example",
+  "version": "1.0.0",
+  "description": "Example Node.js backend using Relay Server SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@relay/sdk-node": "workspace:*",
+    "express": "workspace:*",
+    "cors": "workspace:*",
+    "dotenv": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/express": "workspace:*",
+    "@types/cors": "workspace:*",
+    "@types/node": "workspace:*",
+    "typescript": "workspace:*",
+    "tsx": "workspace:*"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "relay-react-app-example",
+  "version": "1.0.0",
+  "description": "Example React app using Relay Browser SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@relay/sdk-browser": "workspace:*",
+    "react": "workspace:*",
+    "react-dom": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "workspace:*",
+    "@types/react-dom": "workspace:*",
+    "@vitejs/plugin-react": "workspace:*",
+    "typescript": "workspace:*",
+    "vite": "workspace:*"
+  }
+}

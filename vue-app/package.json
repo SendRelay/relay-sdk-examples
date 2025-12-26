@@ -1,0 +1,23 @@
+{
+  "name": "relay-vue-app-example",
+  "version": "1.0.0",
+  "description": "Example Vue 3 app using Relay Browser SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@relay/sdk-browser": "workspace:*",
+    "vue": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "workspace:*",
+    "@vue/tsconfig": "workspace:*",
+    "typescript": "workspace:*",
+    "vite": "workspace:*",
+    "vue-tsc": "workspace:*"
+  }
+}
