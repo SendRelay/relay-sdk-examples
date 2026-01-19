@@ -11,13 +11,13 @@
   },
   "dependencies": {
     "@relay/sdk-browser": "workspace:*",
-    "vue": "workspace:*"
+    "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "workspace:*",
-    "@vue/tsconfig": "workspace:*",
-    "typescript": "workspace:*",
-    "vite": "workspace:*",
-    "vue-tsc": "workspace:*"
+    "@vitejs/plugin-vue": "^5.1.0",
+    "@vue/tsconfig": "^0.5.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.4.8",
+    "vue-tsc": "^2.1.0"
   }
 }
