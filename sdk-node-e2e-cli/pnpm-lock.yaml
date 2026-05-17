@@ -1,0 +1,23 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@relay-sdk/sdk-node':
+        specifier: 1.2.0
+        version: 1.2.0
+
+packages:
+
+  '@relay-sdk/sdk-node@1.2.0':
+    resolution: {integrity: sha512-Vf/5X1imIyhWdxsXByl03gEIOjgTVhIbIikKeMKY6L5q+Ml+xkRUF33NVAhfDxkAcUb3vgH2oTqC0kcJ4VkhWw==}
+    engines: {node: '>=18.0.0'}
+
+snapshots:
+
+  '@relay-sdk/sdk-node@1.2.0': {}

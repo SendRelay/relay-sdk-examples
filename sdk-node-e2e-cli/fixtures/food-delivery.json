@@ -1,0 +1,37 @@
+{
+  "taskType": "FOOD_DELIVERY",
+  "priority": "STANDARD",
+  "autoAssign": true,
+  "notes": "SDK E2E flow test",
+  "externalId": "sdk-e2e-order-001",
+  "stages": [
+    {
+      "type": "PICKUP",
+      "location": {
+        "latitude": 6.5244,
+        "longitude": 3.3792,
+        "address": "123 Broad St, Lagos"
+      },
+      "instructions": "Pickup at front desk",
+      "items": [
+        {
+          "name": "Fried Rice Combo",
+          "description": "Food pack",
+          "estimatedWeight": "STANDARD",
+          "estimatedSize": "BOX",
+          "estimatedValue": 450000
+        }
+      ]
+    },
+    {
+      "type": "DROPOFF",
+      "location": {
+        "latitude": 6.4474,
+        "longitude": 3.3903,
+        "address": "14 Admiralty Way, Lekki"
+      },
+      "instructions": "Call recipient on arrival",
+      "items": []
+    }
+  ]
+}

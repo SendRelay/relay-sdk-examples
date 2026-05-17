@@ -1,0 +1,22 @@
+{
+  "name": "relay-sdk-node-e2e-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end CLI test harness for deployed Relay Node SDK",
+  "type": "module",
+  "scripts": {
+    "cli": "node ./src/cli.js",
+    "doctor": "node ./src/cli.js doctor",
+    "quote": "node ./src/cli.js quote",
+    "create": "node ./src/cli.js create",
+    "create:from-quote": "node ./src/cli.js create-from-quote",
+    "get:last": "node ./src/cli.js get --last",
+    "list": "node ./src/cli.js list",
+    "cancel:last": "node ./src/cli.js cancel --last",
+    "flow:quote-create-get": "node ./src/cli.js flow quote-create-get",
+    "flow:full": "node ./src/cli.js flow full"
+  },
+  "dependencies": {
+    "@relay-sdk/sdk-node": "1.2.0"
+  }
+}
