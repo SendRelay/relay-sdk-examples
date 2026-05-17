@@ -349,6 +349,9 @@ async function main() {
 main().catch(async (error) => {
   const payload = {
     error: error?.message || "Unknown error",
+    statusCode: error?.statusCode,
+    code: error?.code,
+    details: error?.details,
     stack: error?.stack,
     at: new Date().toISOString(),
   };
