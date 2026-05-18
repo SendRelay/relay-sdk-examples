@@ -3,14 +3,14 @@
   "priority": "STANDARD",
   "autoAssign": true,
   "notes": "SDK E2E flow test",
-  "externalId": "sdk-e2e-order-001",
+  "externalId": "sdk-e2e-order-002",
   "stages": [
     {
       "type": "PICKUP",
       "location": {
         "latitude": 6.5244,
         "longitude": 3.3792,
-        "address": "123 Broad St, Lagos"
+        "address": "124 Broad St, Lagos"
       },
       "instructions": "Pickup at front desk",
       "items": [
@@ -28,7 +28,7 @@
       "location": {
         "latitude": 6.4474,
         "longitude": 3.3903,
-        "address": "14 Admiralty Way, Lekki"
+        "address": "15 Admiralty Way, Lekki"
       },
       "instructions": "Call recipient on arrival",
       "items": []
