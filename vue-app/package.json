@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@relay/sdk-browser": "workspace:*",
+    "@relay-sdk/sdk-browser": "workspace:*",
     "vue": "^3.5.0"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@relay/sdk-node": "workspace:*",
+    "@relay-sdk/sdk-node": "workspace:*",
     "express": "^4.21.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5"
