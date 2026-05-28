@@ -46,3 +46,5 @@ Thumbs.db
 # Misc
 *.tsbuildinfo
 .cache
+
+sdk-node-e2e-cli/*

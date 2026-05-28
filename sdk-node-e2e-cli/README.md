@@ -9,7 +9,7 @@ Dedicated end-to-end test harness for the deployed Node SDK package:
 ## 1) Setup
 
 ```bash
-cd /Users/colman/arena/relay/packages/examples/sdk-node-e2e-cli
+cd sdk-node-e2e-cli
 cp .env.example .env
 # edit .env and set RELAY_API_KEY
 pnpm install
