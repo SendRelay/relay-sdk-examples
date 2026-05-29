@@ -14,7 +14,7 @@ Complete Node.js/Express backend demonstrating the Relay Server SDK (`@relay-sdk
 ## Prerequisites
 
 - Node.js 18+
-- Relay API key (get from [relay.delivery](https://relay.delivery))
+- Relay API key (get from [sendrelay.com.ng](https://sendrelay.com.ng))
 
 ## Setup
 
