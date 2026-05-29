@@ -1,6 +1,6 @@
 # Node.js Backend Example
 
-Complete Node.js/Express backend demonstrating the Relay Server SDK (`@relay/sdk-node`).
+Complete Node.js/Express backend demonstrating the Relay Server SDK (`@relay-sdk/sdk-node`).
 
 ## Features
 
@@ -35,7 +35,7 @@ cp .env.example .env
 Add your Relay API key:
 
 ```env
-RELAY_API_KEY=relay_live_your_api_key_here
+RELAY_API_KEY=sk_live_your_api_key_here
 RELAY_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 PORT=3001
 ```
@@ -80,7 +80,16 @@ Content-Type: application/json
         "address": "123 Main St, Lagos",
         "latitude": 6.5244,
         "longitude": 3.3792
-      }
+      },
+      "instructions": "Call sender on arrival",
+      "items": [
+        {
+          "name": "Package",
+          "estimatedValue": 5000000,
+          "estimatedWeight": "STANDARD",
+          "estimatedSize": "BOX"
+        }
+      ]
     },
     {
       "type": "DROPOFF",
@@ -88,15 +97,9 @@ Content-Type: application/json
         "address": "456 Oak Ave, Lagos",
         "latitude": 6.4541,
         "longitude": 3.3947
-      }
-    }
-  ],
-  "items": [
-    {
-      "name": "Package",
-      "weight": "STANDARD",
-      "size": "BOX",
-      "value": 5000000
+      },
+      "instructions": "Drop with security at gate",
+      "items": []
     }
   ]
 }
@@ -111,12 +114,39 @@ Content-Type: application/json
 {
   "taskType": "PACKAGE_DELIVERY",
   "priority": "STANDARD",
-  "customerName": "John Doe",
-  "customerPhone": "+2348012345678",
-  "stages": [...],
-  "items": [...]
+  "stages": [
+    {
+      "type": "PICKUP",
+      "location": {
+        "address": "123 Main St, Lagos",
+        "latitude": 6.5244,
+        "longitude": 3.3792
+      },
+      "instructions": "Call sender on arrival",
+      "items": [
+        {
+          "name": "Package",
+          "estimatedValue": 5000000,
+          "estimatedWeight": "STANDARD",
+          "estimatedSize": "BOX"
+        }
+      ]
+    },
+    {
+      "type": "DROPOFF",
+      "location": {
+        "address": "456 Oak Ave, Lagos",
+        "latitude": 6.4541,
+        "longitude": 3.3947
+      },
+      "instructions": "Drop with security at gate",
+      "items": []
+    }
+  ]
 }
 ```
+
+For `PASSENGER_RIDE` tasks, use `stages[].passengers` (and `items: []`) instead of cargo `items`.
 
 ### Get Task
 
@@ -127,7 +157,7 @@ GET /api/tasks/:taskId
 ### List Tasks
 
 ```bash
-GET /api/tasks?status=PENDING&limit=50
+GET /api/tasks?limit=50
 ```
 
 ### Cancel Task
@@ -147,7 +177,7 @@ This example includes webhook signature verification:
 
 ```typescript
 app.post('/api/webhooks/relay', async (req, res) => {
-  const signature = req.headers['relay-signature'] as string;
+  const signature = req.headers['x-relay-signature'] as string;
   const secret = process.env.RELAY_WEBHOOK_SECRET!;
 
   // Verify signature
@@ -174,7 +204,7 @@ app.post('/api/webhooks/relay', async (req, res) => {
 ### Create a Delivery Task
 
 ```typescript
-import { RelayClient } from '@relay/sdk-node';
+import { RelayClient } from '@relay-sdk/sdk-node';
 
 const relay = new RelayClient({
   apiKey: process.env.RELAY_API_KEY!,
@@ -190,8 +220,15 @@ const task = await relay.tasks.create({
         latitude: 6.5244,
         longitude: 3.3792,
       },
-      contactName: 'Sender',
-      contactPhone: '+2348012345678',
+      instructions: 'Call sender on arrival',
+      items: [
+        {
+          name: 'Package',
+          estimatedValue: 5000000, // ₦50,000 in kobo
+          estimatedWeight: 'STANDARD',
+          estimatedSize: 'BOX',
+        },
+      ],
     },
     {
       type: 'DROPOFF',
@@ -200,32 +237,22 @@ const task = await relay.tasks.create({
         latitude: 6.4541,
         longitude: 3.3947,
       },
-      contactName: 'Receiver',
-      contactPhone: '+2348087654321',
+      instructions: 'Drop with security at gate',
+      items: [],
     },
   ],
-  items: [
-    {
-      name: 'Package',
-      weight: 'STANDARD',
-      size: 'BOX',
-      value: 5000000, // ₦50,000 in kobo
-    },
-  ],
-  customerName: 'John Doe',
-  customerPhone: '+2348012345678',
 });
 
-console.log('Task created:', task.taskId);
-console.log('Delivery fee: ₦' + task.pricingBreakdown.total / 100);
+console.log('Task created:', task.task.taskId);
+console.log('Delivery fee: ₦' + task.pricing.total / 100);
 ```
 
 ### List All Tasks with Pagination
 
 ```typescript
 // Automatic pagination with async iterator
-for await (const task of relay.tasks.listAll({ status: 'COMPLETED' })) {
-  console.log(`Task ${task.taskId}: ${task.status}`);
+for await (const task of relay.tasks.listAll({ limit: 20 })) {
+  console.log(`Task ${task.id}: ${task.status}`);
 }
 ```
 
@@ -242,12 +269,39 @@ curl -X POST http://localhost:3001/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "taskType": "PACKAGE_DELIVERY",
-    "stages": [...],
-    "items": [...]
+    "stages": [
+      {
+        "type": "PICKUP",
+        "location": {
+          "address": "123 Main St, Lagos",
+          "latitude": 6.5244,
+          "longitude": 3.3792
+        },
+        "instructions": "Call sender on arrival",
+        "items": [
+          {
+            "name": "Package",
+            "estimatedValue": 5000000,
+            "estimatedWeight": "STANDARD",
+            "estimatedSize": "BOX"
+          }
+        ]
+      },
+      {
+        "type": "DROPOFF",
+        "location": {
+          "address": "456 Oak Ave, Lagos",
+          "latitude": 6.4541,
+          "longitude": 3.3947
+        },
+        "instructions": "Drop with security at gate",
+        "items": []
+      }
+    ]
   }'
 
 # List tasks
-curl http://localhost:3001/api/tasks?status=PENDING
+curl http://localhost:3001/api/tasks
 ```
 
 ## Production Deployment
@@ -276,9 +330,9 @@ Ensure these are set in production:
 
 ## Learn More
 
-- [Relay Server SDK Documentation](https://www.npmjs.com/package/@relay/sdk-node)
-- [API Reference](https://docs.relay.delivery/api)
-- [Webhook Events](https://docs.relay.delivery/webhooks)
+- [Relay Server SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-node)
+- [API Reference](https://docs.sendrelay.com.ng/api-reference)
+- [Webhook Events](https://docs.sendrelay.com.ng/webhooks)
 
 ## License
 

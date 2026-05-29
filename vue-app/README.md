@@ -56,22 +56,24 @@ The app demonstrates the Relay Browser SDK using Vue 3's Composition API:
 ```vue
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { RelayRealtimeClient } from '@relay/sdk-browser';
+import { RelayRealtimeClient } from '@relay-sdk/sdk-browser';
 
 const relay = ref<RelayRealtimeClient | null>(null);
 const taskStatus = ref('PENDING');
 
 onMounted(async () => {
-  // Fetch token from backend
-  const res = await fetch('http://localhost:3001/api/session-token', {
-    method: 'POST',
-    body: JSON.stringify({ taskId: 'task-123' }),
-  });
-
-  const { token } = await res.json();
-
   // Initialize Relay client
-  const client = new RelayRealtimeClient({ token, autoConnect: true });
+  const client = new RelayRealtimeClient({
+    getToken: async (taskIds) => {
+      const res = await fetch('http://localhost:3001/api/session-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // this backend endpoint accepts a single taskId
+        body: JSON.stringify({ taskId: taskIds[0] }),
+      });
+      return (await res.json()).token;
+    },
+  });
 
   // Listen for events
   client.on('TASK_ASSIGNED', (event) => {
@@ -79,7 +81,7 @@ onMounted(async () => {
   });
 
   // Subscribe
-  await client.subscribe('task', 'task-123');
+  await client.listen('task-123');
   relay.value = client;
 });
 </script>
@@ -159,7 +161,7 @@ For dynamic task IDs, modify the app to get the task ID from the URL or props.
 
 ## Learn More
 
-- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay/sdk-browser)
+- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
 - [Vue 3 Documentation](https://vuejs.org)
 - [Vite Documentation](https://vitejs.dev)
 

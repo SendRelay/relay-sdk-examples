@@ -1,6 +1,6 @@
 # React App Example
 
-Real-time task tracking app using the Relay Browser SDK (`@relay/sdk-browser`).
+Real-time task tracking app using the Relay Browser SDK (`@relay-sdk/sdk-browser`).
 
 ## Features
 
@@ -66,8 +66,35 @@ curl -X POST http://localhost:3001/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "taskType": "PACKAGE_DELIVERY",
-    "stages": [...],
-    "items": [...]
+    "stages": [
+      {
+        "type": "PICKUP",
+        "location": {
+          "address": "123 Main St, Lagos",
+          "latitude": 6.5244,
+          "longitude": 3.3792
+        },
+        "instructions": "Call sender on arrival",
+        "items": [
+          {
+            "name": "Package",
+            "estimatedValue": 5000000,
+            "estimatedWeight": "STANDARD",
+            "estimatedSize": "BOX"
+          }
+        ]
+      },
+      {
+        "type": "DROPOFF",
+        "location": {
+          "address": "456 Oak Ave, Lagos",
+          "latitude": 6.4541,
+          "longitude": 3.3947
+        },
+        "instructions": "Drop with security at gate",
+        "items": []
+      }
+    ]
   }'
 ```
 
@@ -105,8 +132,15 @@ const { token } = await res.json();
 
 ```typescript
 const client = new RelayRealtimeClient({
-  token,
-  autoConnect: true,
+  getToken: async (taskIds) => {
+    const res = await fetch(`${BACKEND_URL}/api/session-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // this backend endpoint accepts a single taskId
+      body: JSON.stringify({ taskId: taskIds[0] }),
+    });
+    return (await res.json()).token;
+  },
 });
 ```
 
@@ -116,7 +150,6 @@ const client = new RelayRealtimeClient({
 client.on('TASK_ASSIGNED', (event) => {
   setTaskStatus('ASSIGNED');
   setRiderId(event.riderId);
-  setEta(event.eta);
 });
 
 client.on('RIDER_LOCATION_UPDATE', (event) => {
@@ -127,7 +160,7 @@ client.on('RIDER_LOCATION_UPDATE', (event) => {
 ### 4. Subscribe to Task
 
 ```typescript
-await client.subscribe('task', TASK_ID);
+await client.listen(TASK_ID);
 ```
 
 ## Event Types
@@ -150,7 +183,6 @@ The app handles all Relay event types:
 - Task ID
 - Current status (color-coded)
 - Rider ID (when assigned)
-- ETA (estimated time)
 
 ### Rider Location Panel
 - Real-time GPS coordinates
@@ -183,7 +215,7 @@ VITE_TASK_ID=task-id-from-url-param
 
 ## Learn More
 
-- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay/sdk-browser)
+- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
 - [React Documentation](https://react.dev)
 - [Vite Documentation](https://vitejs.dev)
 

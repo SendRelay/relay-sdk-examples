@@ -6,27 +6,27 @@ These examples demonstrate how to integrate Relay into your applications using o
 
 ## 📦 Available SDKs
 
-- **[@relay/sdk-node](https://www.npmjs.com/package/@relay/sdk-node)** - Server-side SDK for Node.js
-- **[@relay/sdk-browser](https://www.npmjs.com/package/@relay/sdk-browser)** - Browser SDK for real-time WebSocket updates
+- **[@relay-sdk/sdk-node](https://www.npmjs.com/package/@relay-sdk/sdk-node)** - Server-side SDK for Node.js
+- **[@relay-sdk/sdk-browser](https://www.npmjs.com/package/@relay-sdk/sdk-browser)** - Browser SDK for real-time WebSocket updates
 
 ## 🚀 Examples
 
 ### Backend Examples
 
 - **[Node.js Backend](./node-backend/)** - Express server with task management and webhook handling
-- **[Next.js API Routes](./nextjs-fullstack/)** - Full-stack Next.js app with API routes
+- **[Next.js API Routes]** - (*todo)  Full-stack Next.js app with API routes
 
 ### Frontend Examples
 
 - **[React App](./react-app/)** - Real-time task tracking with React
-- **[Next.js Full-Stack](./nextjs-fullstack/)** - Complete Next.js application
+- **[Next.js Full-Stack]** - (*todo) Complete Next.js application
 - **[Vue App](./vue-app/)** - Task tracking with Vue 3
 
 ## 🔑 Getting Started
 
 ### 1. Get Your API Key
 
-Sign up at [relay.delivery](https://relay.delivery) and get your API key from the dashboard.
+Sign up at [sendrelay.com.ng](https://dashboard.sendrelay.com.ng) and get your API key from the dashboard.
 
 ### 2. Choose an Example
 
@@ -37,34 +37,16 @@ Each example has its own README with setup instructions. All examples are standa
 All examples use the published npm packages:
 
 ```bash
-npm install @relay/sdk-node @relay/sdk-browser
+npm install @relay-sdk/sdk-node @relay-sdk/sdk-browser
 ```
 
 ## 📚 Documentation
 
-- [Server SDK Documentation](https://www.npmjs.com/package/@relay/sdk-node)
-- [Browser SDK Documentation](https://www.npmjs.com/package/@relay/sdk-browser)
-- [API Reference](https://docs.relay.delivery/api)
-- [Webhook Events](https://docs.relay.delivery/webhooks)
-
-## 🚢 Deployment (For Maintainers)
-
-This examples directory is part of the private monorepo but deployed to a separate public repository.
-
-**Quick deployment workflow:**
-```bash
-cd packages/examples
-./scripts/prepare-for-deploy.sh    # Switch to npm versions
-./scripts/deploy-to-public-repo.sh # Deploy to public repo
-./scripts/restore-workspace-deps.sh # Restore workspace deps
-```
-
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for comprehensive deployment guide including:
-- Local development with workspace dependencies
-- Complete deployment workflow
-- Git subtree deployment process
-- CI/CD integration
-- Troubleshooting
+- [Server SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-node)
+- [Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
+- [Flutter SDK Documentation](https://pub.dev/packages/relay_flutter)
+- [API Reference](https://docs.sendrelay.com.ng/api-reference)
+- [Webhook Events](https://docs.sendrelay.com.ng/webhooks)
 
 ## 🤝 Contributing
 
@@ -101,15 +83,13 @@ example-name/
 
 ## 🆘 Support
 
-- [GitHub Issues](https://github.com/relay/relay-examples/issues)
-- [Documentation](https://docs.relay.delivery)
+- [GitHub Issues](https://github.com/SendRelay/relay-sdk-examples/issues)
+- [Documentation](https://docs.sendrelay.com.ng)
 - [Discord Community](https://discord.gg/relay)
-- Email: support@relay.delivery
+- Email: ops@sendrelay.com.ng
 
 ## 📄 License
 
 MIT License - feel free to use these examples in your projects.
 
 ---
-
-**Note:** These examples use the published npm packages. For SDK development, see the [main repository](https://github.com/relay/relay-mvp) (private).
