@@ -351,3 +351,24 @@ Ensure these are set in production:
 ## License
 
 MIT
+
+### Restrict live deliveries to your fleets
+
+The quote and create endpoints forward `preferences` to Relay. Include the same
+preferences in both requests:
+
+```json
+{
+  "preferences": {
+    "allowedOrganisations": ["your-fleet-organization-id"],
+    "blockedOrganisations": ["excluded-fleet-organization-id"],
+    "allowIndependentRiders": false
+  }
+}
+```
+
+Use the organisation profile's `organizationId`, not its wallet account ID.
+Blocked memberships take precedence, and empty lists impose no list restriction.
+With `allowIndependentRiders: false`, only current fleet members qualify. These
+preferences also constrain available riders and manual offers, and membership is
+checked again at assignment. Test-mode simulations do not model fleet membership.

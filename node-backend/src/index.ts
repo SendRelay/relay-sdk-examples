@@ -53,6 +53,7 @@ app.post('/api/tasks/quote', async (req, res) => {
 			taskType: req.body.taskType || 'PACKAGE_DELIVERY',
 			stages: req.body.stages,
 			priority: req.body.priority || 'STANDARD',
+			preferences: req.body.preferences,
 		});
 
 		res.json(quote);
@@ -76,6 +77,7 @@ app.post('/api/tasks', async (req, res) => {
 				priority: req.body.priority || 'STANDARD',
 				notes: req.body.notes,
 				externalId: req.body.externalId,
+				preferences: req.body.preferences,
 			},
 			{
 				idempotencyKey: req.body.idempotencyKey,
