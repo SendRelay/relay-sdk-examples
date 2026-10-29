@@ -1,7 +1,7 @@
 {
   "name": "relay-vue-app-example",
   "version": "1.0.0",
-  "description": "Example Vue 3 app using Relay Browser SDK",
+  "description": "Example Vue 3 app using the Relay Vue SDK",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@relay-sdk/sdk-browser": "^1.4.0",
+    "@relay-sdk/vue": "^1.7.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {

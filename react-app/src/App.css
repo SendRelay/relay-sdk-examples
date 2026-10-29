@@ -171,3 +171,17 @@
 	color: var(--text-secondary);
 	font-size: 0.875rem;
 }
+
+.eta-panel {
+	border-color: #10b981;
+}
+
+.eta-headline {
+	margin-bottom: 1rem;
+	font-size: 1.25rem;
+	color: var(--text-primary);
+}
+
+.eta-headline strong {
+	color: #10b981;
+}

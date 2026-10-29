@@ -1,140 +1,41 @@
-import { useEffect, useRef, useState } from 'react';
-import { RelayRealtimeClient } from '@relay-sdk/sdk-browser';
-import type {
-	Location,
-	RiderLocationUpdateEvent,
-	TaskAssignedEvent,
-} from '@relay-sdk/sdk-browser';
+import { useEtaCountdown, useTaskTracker } from '@relay-sdk/react';
 import './App.css';
 
-// Configuration
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 const TASK_ID = import.meta.env.VITE_TASK_ID || 'task-demo-123';
 
+const STATUS_COLORS: Record<string, string> = {
+	PENDING: '#f59e0b',
+	OFFERED: '#f59e0b',
+	ASSIGNED: '#8b5cf6',
+	IN_PROGRESS: '#06b6d4',
+	COMPLETED: '#10b981',
+	FAILED: '#ef4444',
+	CANCELLED: '#ef4444',
+};
+
+const CONNECTION_COLORS: Record<string, string> = {
+	live: '#10b981',
+	connecting: '#f59e0b',
+	reconnecting: '#f59e0b',
+	offline: '#ef4444',
+	idle: '#6b7280',
+};
+
+function formatDistance(meters: number) {
+	return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
+}
+
+function formatCountdown(seconds: number) {
+	if (seconds < 60) return 'under a minute';
+	const minutes = Math.ceil(seconds / 60);
+	return `${minutes} min`;
+}
+
 function App() {
-	const relay = useRef<RelayRealtimeClient | null>(null);
-	const [connectionState, setConnectionState] = useState<string>('disconnected');
-	const [taskStatus, setTaskStatus] = useState<string>('PENDING');
-	const [riderId, setRiderId] = useState<string | null>(null);
-	const [riderLocation, setRiderLocation] = useState<Location | null>(null);
-	const [events, setEvents] = useState<Array<{ time: string; type: string; data: string }>>([]);
-	const [error, setError] = useState<string | null>(null);
-
-	const addEvent = (type: string, data: any) => {
-		setEvents((prev) => [
-			{
-				time: new Date().toLocaleTimeString(),
-				type,
-				data: JSON.stringify(data, null, 2),
-			},
-			...prev.slice(0, 9),
-		]);
-	};
-
-	const initializeRelay = async () => {
-		try {
-			setError(null);
-
-			// Initialize Relay client
-			const client = new RelayRealtimeClient({
-				getToken: async (taskIds) => {
-					const res = await fetch(`${BACKEND_URL}/api/session-token`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ taskIds }),
-					});
-
-					if (!res.ok) throw new Error('Failed to get session token');
-					return (await res.json()).token;
-				},
-			});
-			relay.current = client;
-
-			// Connection events
-			client.on('CONNECTION_OPEN', () => {
-				setConnectionState('connected');
-				addEvent('CONNECTION_OPEN', { state: 'connected' });
-			});
-
-			client.on('CONNECTION_CLOSE', (event) => {
-				setConnectionState('disconnected');
-				addEvent('CONNECTION_CLOSE', event);
-			});
-
-			client.on('CONNECTION_ERROR', (event) => {
-				setConnectionState('error');
-				setError(event.error.message);
-				addEvent('CONNECTION_ERROR', event);
-			});
-
-			client.on('CONNECTION_RECONNECTING', (event) => {
-				setConnectionState('reconnecting');
-				addEvent('CONNECTION_RECONNECTING', event);
-			});
-
-			// Task events
-			client.on('TASK_ASSIGNED', (event: TaskAssignedEvent) => {
-				setTaskStatus('ASSIGNED');
-				setRiderId(event.riderId);
-				addEvent('TASK_ASSIGNED', event);
-			});
-
-			client.on('TASK_IN_PROGRESS', (event) => {
-				setTaskStatus('IN_PROGRESS');
-				addEvent('TASK_IN_PROGRESS', event);
-			});
-
-			client.on('TASK_COMPLETED', (event) => {
-				setTaskStatus('COMPLETED');
-				addEvent('TASK_COMPLETED', event);
-			});
-
-			client.on('RIDER_LOCATION_UPDATE', (event: RiderLocationUpdateEvent) => {
-				setRiderLocation(event.location);
-				addEvent('RIDER_LOCATION_UPDATE', event);
-			});
-
-			client.on('TOKEN_EXPIRING', (event) => {
-				addEvent('TOKEN_EXPIRING', event);
-			});
-
-			// Subscribe to task
-			await client.listen(TASK_ID);
-		} catch (error: any) {
-			console.error('Initialization error:', error);
-			setError(error.message);
-		}
-	};
-
-	useEffect(() => {
-		initializeRelay();
-		return () => {
-			relay.current?.disconnect();
-		};
-	}, []);
-
-	const getStatusColor = () => {
-		const colors: Record<string, string> = {
-			PENDING: '#f59e0b',
-			ASSIGNED: '#8b5cf6',
-			IN_PROGRESS: '#06b6d4',
-			COMPLETED: '#10b981',
-			FAILED: '#ef4444',
-			CANCELLED: '#ef4444',
-		};
-		return colors[taskStatus] || '#6b7280';
-	};
-
-	const getConnectionColor = () => {
-		const colors: Record<string, string> = {
-			connected: '#10b981',
-			connecting: '#f59e0b',
-			reconnecting: '#f59e0b',
-			disconnected: '#ef4444',
-			error: '#ef4444',
-		};
-		return colors[connectionState] || '#6b7280';
-	};
+	// One hook tracks the task: status, rider position, live ETA, events and connection state.
+	const { status, rider, eta, events, connection, error, currentStageIndex } = useTaskTracker(TASK_ID);
+	const secondsLeft = useEtaCountdown(eta);
+	const statusColor = STATUS_COLORS[status ?? 'PENDING'] ?? '#6b7280';
 
 	return (
 		<div className="app">
@@ -143,14 +44,14 @@ function App() {
 				<div className="status-bar">
 					<div className="status-item">
 						<span className="status-label">Connection:</span>
-						<span className="status-value" style={{ color: getConnectionColor() }}>
-							{connectionState}
+						<span className="status-value" style={{ color: CONNECTION_COLORS[connection] }}>
+							{connection}
 						</span>
 					</div>
 					<div className="status-item">
 						<span className="status-label">Task Status:</span>
-						<span className="status-value" style={{ color: getStatusColor() }}>
-							{taskStatus}
+						<span className="status-value" style={{ color: statusColor }}>
+							{status ?? 'Finding a rider…'}
 						</span>
 					</div>
 				</div>
@@ -158,7 +59,7 @@ function App() {
 
 			{error && (
 				<div className="error-banner">
-					<strong>Error:</strong> {error}
+					<strong>Error:</strong> {error.message}
 				</div>
 			)}
 
@@ -172,35 +73,61 @@ function App() {
 						</div>
 						<div className="info-item">
 							<span className="info-label">Status:</span>
-							<span className="info-value" style={{ color: getStatusColor() }}>
-								{taskStatus}
+							<span className="info-value" style={{ color: statusColor }}>
+								{status ?? 'PENDING'}
 							</span>
 						</div>
-						{riderId && (
+						{currentStageIndex !== null && (
+							<div className="info-item">
+								<span className="info-label">Current stop:</span>
+								<span className="info-value">{currentStageIndex + 1}</span>
+							</div>
+						)}
+						{rider?.riderId && (
 							<div className="info-item">
 								<span className="info-label">Rider ID:</span>
-								<span className="info-value">{riderId}</span>
+								<span className="info-value">{rider.riderId}</span>
 							</div>
 						)}
 					</div>
 				</div>
 
-				{riderLocation && (
+				{eta && secondsLeft !== null && (
+					<div className="panel eta-panel">
+						<h2>Arrival</h2>
+						<p className="eta-headline">
+							Arriving at stop {eta.stageIndex + 1} in <strong>{formatCountdown(secondsLeft)}</strong>
+						</p>
+						<div className="info-grid">
+							<div className="info-item">
+								<span className="info-label">Arrives at:</span>
+								<span className="info-value">{new Date(eta.arrivesAt).toLocaleTimeString()}</span>
+							</div>
+							<div className="info-item">
+								<span className="info-label">Distance by road:</span>
+								<span className="info-value">{formatDistance(eta.meters)}</span>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{rider && (
 					<div className="panel">
 						<h2>Rider Location</h2>
 						<div className="info-grid">
 							<div className="info-item">
 								<span className="info-label">Latitude:</span>
-								<span className="info-value">{riderLocation.latitude.toFixed(6)}</span>
+								<span className="info-value">{rider.latitude.toFixed(6)}</span>
 							</div>
 							<div className="info-item">
 								<span className="info-label">Longitude:</span>
-								<span className="info-value">{riderLocation.longitude.toFixed(6)}</span>
+								<span className="info-value">{rider.longitude.toFixed(6)}</span>
 							</div>
-							{riderLocation.speed && (
+							{rider.speed !== null && (
 								<div className="info-item">
 									<span className="info-label">Speed:</span>
-									<span className="info-value">{riderLocation.speed.toFixed(1)} km/h</span>
+									{/* The SDK reports metres per second. */}
+									<span className="info-value">{(rider.speed * 3.6).toFixed(1)} km/h</span>
 								</div>
 							)}
 						</div>
@@ -213,13 +140,13 @@ function App() {
 						{events.length === 0 ? (
 							<div className="empty-state">No events yet. Waiting for updates...</div>
 						) : (
-							events.map((event, index) => (
-								<div key={index} className="event-item">
+							events.map((event) => (
+								<div key={`${event.type}-${event.at}`} className="event-item">
 									<div className="event-header">
-										<span className="event-time">{event.time}</span>
+										<span className="event-time">{new Date(event.at).toLocaleTimeString()}</span>
 										<span className="event-type">{event.type}</span>
 									</div>
-									<pre className="event-data">{event.data}</pre>
+									<pre className="event-data">{JSON.stringify(event.payload, null, 2)}</pre>
 								</div>
 							))
 						)}
@@ -229,7 +156,7 @@ function App() {
 
 			<footer className="footer">
 				<p>
-					Powered by <strong>@relay-sdk/sdk-browser</strong>
+					Powered by <strong>@relay-sdk/react</strong>
 				</p>
 			</footer>
 		</div>

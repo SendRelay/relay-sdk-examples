@@ -1,97 +1,48 @@
 # React App Example
 
-Real-time task tracking app using the Relay Browser SDK (`@relay-sdk/sdk-browser`).
+Live delivery tracking in React with `@relay-sdk/react`. A single hook drives the whole page.
 
 ## Features
 
-- ✅ Real-time WebSocket connection
-- ✅ Live task status updates
-- ✅ Rider location tracking
+- ✅ Live task status and current stop
+- ✅ Live ETA: arrival time, road distance and a countdown that ticks between updates
+- ✅ Rider location
 - ✅ Event log with timestamps
-- ✅ Automatic reconnection
-- ✅ Token auto-refresh
-- ✅ Beautiful dark mode UI
+- ✅ Connection state, with automatic reconnection and token refresh handled by the SDK
+- ✅ No API key in the browser: tracking tokens come from your backend
 
 ## Prerequisites
 
 - Node.js 18+
-- Running backend (see [node-backend example](../node-backend/))
+- The backend running (see the [node-backend example](../node-backend/)). It issues the tracking tokens.
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Create a task
 
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Configure:
-
-```env
-VITE_BACKEND_URL=http://localhost:3001
-VITE_TASK_ID=task-your-task-id
-```
-
-**Note:** You need to create a task first using the backend, then use that task ID here.
-
-### 3. Run Development Server
-
-```bash
-npm run dev
-```
-
-App runs at http://localhost:5173
-
-## Usage
-
-### 1. Start the Backend
-
-```bash
-cd ../node-backend
-npm run dev
-```
-
-### 2. Create a Task
+Start the backend, then create a task through it. With an `sk_test_` key, `simulationOutcome: "SUCCESS"` plays a full simulated delivery, with a virtual rider moving and a live ETA, so you can watch the tracker without a real rider.
 
 ```bash
 curl -X POST http://localhost:3001/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "taskType": "PACKAGE_DELIVERY",
+    "simulationOutcome": "SUCCESS",
     "stages": [
       {
         "type": "PICKUP",
-        "location": {
-          "address": "123 Main St, Lagos",
-          "latitude": 6.5244,
-          "longitude": 3.3792
-        },
-        "instructions": "Call sender on arrival",
-        "items": [
-          {
-            "name": "Package",
-            "estimatedValue": 5000000,
-            "estimatedWeight": "STANDARD",
-            "estimatedSize": "BOX"
-          }
-        ]
+        "location": { "address": "12 Marina Road, Lagos", "latitude": 6.452, "longitude": 3.389 },
+        "items": [{ "name": "Package", "estimatedValue": 5000000, "estimatedWeight": "STANDARD", "estimatedSize": "BOX" }]
       },
       {
         "type": "DROPOFF",
-        "location": {
-          "address": "456 Oak Ave, Lagos",
-          "latitude": 6.4541,
-          "longitude": 3.3947
-        },
-        "instructions": "Drop with security at gate",
+        "location": { "address": "456 Oak Ave, Lagos", "latitude": 6.4541, "longitude": 3.3947 },
         "items": []
       }
     ]
@@ -100,111 +51,86 @@ curl -X POST http://localhost:3001/api/tasks \
 
 Copy the returned `taskId`.
 
-### 3. Update Environment
+### 3. Configure the environment
 
-Add the task ID to `.env`:
-
-```env
-VITE_TASK_ID=task-abc123
+```bash
+cp .env.example .env
 ```
 
-### 4. Run React App
+```env
+VITE_BACKEND_URL=http://localhost:3001
+VITE_TASK_ID=<the taskId from step 2>
+```
+
+`VITE_RELAY_REALTIME_URL` is only for running against a local Relay API. Leave it empty to use production.
+
+### 4. Run it
 
 ```bash
 npm run dev
 ```
 
-## How It Works
+The app runs at http://localhost:5173.
 
-### 1. Initialize Relay Client
+## How it works
 
-```typescript
-const client = new RelayRealtimeClient({
-  getToken: async (taskIds) => {
-    const res = await fetch(`${BACKEND_URL}/api/session-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskIds }),
-    });
-    return (await res.json()).token;
-  },
-});
+### 1. Provide the client once
+
+`main.tsx` wraps the app in `RelayProvider`. `getToken` asks your backend for a short-lived token scoped to the tasks being tracked:
+
+```tsx
+import { RelayProvider } from '@relay-sdk/react';
+
+async function getToken(taskIds: string[]) {
+  const res = await fetch(`${BACKEND_URL}/api/session-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taskIds }),
+  });
+  return (await res.json()).token;
+}
+
+<RelayProvider getToken={getToken}>
+  <App />
+</RelayProvider>
 ```
 
-### 2. Subscribe to Events
+### 2. Track a task
 
-```typescript
-client.on('TASK_ASSIGNED', (event) => {
-  setTaskStatus('ASSIGNED');
-  setRiderId(event.riderId);
-});
+```tsx
+import { useEtaCountdown, useTaskTracker } from '@relay-sdk/react';
 
-client.on('RIDER_LOCATION_UPDATE', (event) => {
-  setRiderLocation(event.location);
-});
+const { status, rider, eta, events, connection, error, currentStageIndex } = useTaskTracker(taskId);
+const secondsLeft = useEtaCountdown(eta);
 ```
 
-### 3. Subscribe to Task
+| Value | What it holds |
+| --- | --- |
+| `status` | The task status (`ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, ...) |
+| `currentStageIndex` | The stop the rider is heading to |
+| `rider` | The rider's id and latest location |
+| `eta` | `seconds`, `meters` and `arrivesAt` for the next stop, when the rider app reports a route |
+| `events` | Recent events, newest first |
+| `connection` | `idle`, `connecting`, `live`, `reconnecting` or `offline` |
+| `error` | The last connection or token error |
 
-```typescript
-await client.listen(TASK_ID);
-```
+`useEtaCountdown(eta)` counts down from `arrivesAt` every second, so the time stays current between location updates. The hook subscribes on mount and unsubscribes on unmount, or when `taskId` changes.
 
-## Event Types
+The SDK reports `rider.location.speed` in metres per second. The example multiplies by 3.6 to show km/h.
 
-The app handles all Relay event types:
-
-- `CONNECTION_OPEN` - WebSocket connected
-- `CONNECTION_CLOSE` - WebSocket disconnected
-- `CONNECTION_ERROR` - Connection error
-- `CONNECTION_RECONNECTING` - Reconnecting
-- `TOKEN_EXPIRING` - Token about to expire (auto-refreshes)
-- `TASK_ASSIGNED` - Task assigned to rider
-- `TASK_IN_PROGRESS` - Rider started task
-- `TASK_COMPLETED` - Task completed
-- `RIDER_LOCATION_UPDATE` - Rider GPS location updated
-
-## UI Components
-
-### Task Information Panel
-- Task ID
-- Current status (color-coded)
-- Rider ID (when assigned)
-
-### Rider Location Panel
-- Real-time GPS coordinates
-- Speed (km/h)
-
-### Event Log
-- Last 10 events with timestamps
-- Full event payload (JSON)
-
-## Production Build
+## Production build
 
 ```bash
 npm run build
 ```
 
-Deploy the `dist/` folder to:
-- Vercel
-- Netlify
-- AWS S3 + CloudFront
-- Any static hosting
+Deploy `dist/` to any static host. In production, set `VITE_BACKEND_URL` to your backend, and read the task id from the URL or your own state instead of `VITE_TASK_ID`.
 
-## Environment Variables (Production)
+## Learn more
 
-Create `.env.production`:
-
-```env
-VITE_BACKEND_URL=https://your-backend.com
-VITE_TASK_ID=task-id-from-url-param
-```
-
-## Learn More
-
-- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
-- [React Documentation](https://react.dev)
-- [Vite Documentation](https://vitejs.dev)
+- [React SDK documentation](https://docs.sendrelay.com.ng/sdks/react-sdk)
+- [Tracking guide](https://docs.sendrelay.com.ng/tracking)
+- [Test-mode simulations](https://docs.sendrelay.com.ng/simulation)
 
 ## License
 

@@ -31,6 +31,8 @@ app.use(
 // Initialize Relay SDK
 const relay = new RelayClient({
 	apiKey: process.env.RELAY_API_KEY!,
+	// Only set RELAY_BASE_URL to run against a local Relay API.
+	baseUrl: process.env.RELAY_BASE_URL || undefined,
 });
 
 /**
@@ -78,6 +80,8 @@ app.post('/api/tasks', async (req, res) => {
 				notes: req.body.notes,
 				externalId: req.body.externalId,
 				preferences: req.body.preferences,
+				// Test keys only: how the simulated delivery plays out (SUCCESS, NO_RIDERS, ...).
+				simulationOutcome: req.body.simulationOutcome,
 			},
 			{
 				idempotencyKey: req.body.idempotencyKey,

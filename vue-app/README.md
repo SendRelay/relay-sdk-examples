@@ -1,168 +1,120 @@
 # Vue App Example
 
-Real-time task tracking app using Vue 3 Composition API and the Relay Browser SDK.
+Live delivery tracking in Vue 3 with `@relay-sdk/vue`. A single composable drives the whole page.
 
 ## Features
 
-- ✅ Vue 3 Composition API with TypeScript
-- ✅ Real-time WebSocket connection
-- ✅ Live task status updates
-- ✅ Rider location tracking
+- ✅ Live task status and current stop
+- ✅ Live ETA: arrival time, road distance and a countdown that ticks between updates
+- ✅ Rider location
 - ✅ Event log with timestamps
-- ✅ Automatic reconnection
-- ✅ Token auto-refresh
-- ✅ Beautiful dark mode UI
+- ✅ Connection state, with automatic reconnection and token refresh handled by the SDK
+- ✅ No API key in the browser: tracking tokens come from your backend
 
 ## Prerequisites
 
 - Node.js 18+
-- Running backend (see [node-backend example](../node-backend/))
+- The backend running (see the [node-backend example](../node-backend/)). It issues the tracking tokens.
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Create a task
 
-Copy `.env.example` to `.env`:
+Create a task through the backend. With an `sk_test_` key, pass `"simulationOutcome": "SUCCESS"` to play a full simulated delivery, with a virtual rider and a live ETA. The [React example's README](../react-app/README.md#2-create-a-task) has a ready-made `curl` command.
+
+### 3. Configure the environment
 
 ```bash
 cp .env.example .env
 ```
 
-Configure:
-
 ```env
 VITE_BACKEND_URL=http://localhost:3001
-VITE_TASK_ID=task-your-task-id
+VITE_TASK_ID=<your taskId>
 ```
 
-### 3. Run Development Server
+`VITE_RELAY_REALTIME_URL` is only for running against a local Relay API. Leave it empty to use production.
+
+### 4. Run it
 
 ```bash
 npm run dev
 ```
 
-App runs at http://localhost:5174
+The app runs at http://localhost:5174.
 
-## Usage
+## How it works
 
-The app demonstrates the Relay Browser SDK using Vue 3's Composition API:
+### 1. Install the plugin once
+
+`main.ts` installs `createRelay`. `getToken` asks your backend for a short-lived token scoped to the tasks being tracked:
+
+```ts
+import { createApp } from 'vue';
+import { createRelay } from '@relay-sdk/vue';
+
+createApp(App)
+  .use(
+    createRelay({
+      getToken: async (taskIds) => {
+        const res = await fetch(`${BACKEND_URL}/api/session-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskIds }),
+        });
+        return (await res.json()).token;
+      },
+    }),
+  )
+  .mount('#app');
+```
+
+### 2. Track a task
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { RelayRealtimeClient } from '@relay-sdk/sdk-browser';
+import { useEtaCountdown, useTaskTracker } from '@relay-sdk/vue';
 
-const relay = ref<RelayRealtimeClient | null>(null);
-const taskStatus = ref('PENDING');
-
-onMounted(async () => {
-  // Initialize Relay client
-  const client = new RelayRealtimeClient({
-    getToken: async (taskIds) => {
-      const res = await fetch('http://localhost:3001/api/session-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskIds }),
-      });
-      return (await res.json()).token;
-    },
-  });
-
-  // Listen for events
-  client.on('TASK_ASSIGNED', (event) => {
-    taskStatus.value = 'ASSIGNED';
-  });
-
-  // Subscribe
-  await client.listen('task-123');
-  relay.value = client;
-});
+const { status, rider, eta, events, connection, error, currentStageIndex } = useTaskTracker(taskId);
+const secondsLeft = useEtaCountdown(eta);
 </script>
 ```
 
-## Key Features
+Each value is a ref:
 
-### Composition API
+| Value | What it holds |
+| --- | --- |
+| `status` | The task status (`ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, ...) |
+| `currentStageIndex` | The stop the rider is heading to |
+| `rider` | The rider's id and latest location |
+| `eta` | `seconds`, `meters` and `arrivesAt` for the next stop, when the rider app reports a route |
+| `events` | Recent events, newest first |
+| `connection` | `idle`, `connecting`, `live`, `reconnecting` or `offline` |
+| `error` | The last connection or token error |
 
-Uses Vue 3's Composition API for clean, type-safe state management:
+`useEtaCountdown(eta)` counts down from `arrivesAt` every second, so the time stays current between location updates. The composable subscribes when the component mounts and unsubscribes when it unmounts. `useTaskTracker` also accepts a ref or getter, and follows it when the task id changes.
 
-```typescript
-const connectionState = ref('disconnected');
-const taskStatus = ref('PENDING');
-const riderId = ref<string | null>(null);
-const riderLocation = ref<Location | null>(null);
-```
+The SDK reports `rider.location.speed` in metres per second. The example multiplies by 3.6 to show km/h.
 
-### Computed Properties
-
-Dynamic styling based on state:
-
-```typescript
-const connectionColor = computed(() => {
-  const colors: Record<string, string> = {
-    connected: '#10b981',
-    disconnected: '#ef4444',
-  };
-  return colors[connectionState.value] || '#6b7280';
-});
-```
-
-### Lifecycle Management
-
-Proper setup and cleanup:
-
-```typescript
-onMounted(() => {
-  initializeRelay();
-});
-
-onUnmounted(() => {
-  relay.value?.disconnect();
-});
-```
-
-## Event Handling
-
-The app handles all Relay event types:
-
-- `CONNECTION_OPEN` - WebSocket connected
-- `CONNECTION_CLOSE` - WebSocket disconnected
-- `TASK_ASSIGNED` - Task assigned to rider
-- `TASK_IN_PROGRESS` - Rider started task
-- `TASK_COMPLETED` - Task completed
-- `RIDER_LOCATION_UPDATE` - Rider GPS updated
-- `TOKEN_EXPIRING` - Token about to expire
-
-## Production Build
+## Production build
 
 ```bash
 npm run build
 ```
 
-Deploy the `dist/` folder to any static hosting:
-- Vercel
-- Netlify
-- AWS S3 + CloudFront
+Deploy `dist/` to any static host. In production, set `VITE_BACKEND_URL` to your backend, and read the task id from the route or props instead of `VITE_TASK_ID`.
 
-## Environment Variables (Production)
+## Learn more
 
-```env
-VITE_BACKEND_URL=https://your-backend.com
-```
-
-For dynamic task IDs, modify the app to get the task ID from the URL or props.
-
-## Learn More
-
-- [Relay Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
-- [Vue 3 Documentation](https://vuejs.org)
-- [Vite Documentation](https://vitejs.dev)
+- [Vue SDK documentation](https://docs.sendrelay.com.ng/sdks/vue-sdk)
+- [Tracking guide](https://docs.sendrelay.com.ng/tracking)
+- [Test-mode simulations](https://docs.sendrelay.com.ng/simulation)
 
 ## License
 

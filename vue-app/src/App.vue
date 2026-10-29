@@ -5,22 +5,16 @@
 			<div class="status-bar">
 				<div class="status-item">
 					<span class="status-label">Connection:</span>
-					<span class="status-value" :style="{ color: connectionColor }">
-						{{ connectionState }}
-					</span>
+					<span class="status-value" :style="{ color: connectionColor }">{{ connection }}</span>
 				</div>
 				<div class="status-item">
 					<span class="status-label">Task Status:</span>
-					<span class="status-value" :style="{ color: statusColor }">
-						{{ taskStatus }}
-					</span>
+					<span class="status-value" :style="{ color: statusColor }">{{ status ?? 'Finding a rider…' }}</span>
 				</div>
 			</div>
 		</header>
 
-		<div v-if="error" class="error-banner">
-			<strong>Error:</strong> {{ error }}
-		</div>
+		<div v-if="error" class="error-banner"><strong>Error:</strong> {{ error.message }}</div>
 
 		<div class="content">
 			<div class="panel">
@@ -32,31 +26,51 @@
 					</div>
 					<div class="info-item">
 						<span class="info-label">Status:</span>
-						<span class="info-value" :style="{ color: statusColor }">
-							{{ taskStatus }}
-						</span>
+						<span class="info-value" :style="{ color: statusColor }">{{ status ?? 'PENDING' }}</span>
 					</div>
-					<div v-if="riderId" class="info-item">
+					<div v-if="currentStageIndex !== null" class="info-item">
+						<span class="info-label">Current stop:</span>
+						<span class="info-value">{{ currentStageIndex + 1 }}</span>
+					</div>
+					<div v-if="rider?.riderId" class="info-item">
 						<span class="info-label">Rider ID:</span>
-						<span class="info-value">{{ riderId }}</span>
+						<span class="info-value">{{ rider.riderId }}</span>
 					</div>
 				</div>
 			</div>
 
-			<div v-if="riderLocation" class="panel">
+			<div v-if="eta && secondsLeft !== null" class="panel eta-panel">
+				<h2>Arrival</h2>
+				<p class="eta-headline">
+					Arriving at stop {{ eta.stageIndex + 1 }} in <strong>{{ formatCountdown(secondsLeft) }}</strong>
+				</p>
+				<div class="info-grid">
+					<div class="info-item">
+						<span class="info-label">Arrives at:</span>
+						<span class="info-value">{{ new Date(eta.arrivesAt).toLocaleTimeString() }}</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Distance by road:</span>
+						<span class="info-value">{{ formatDistance(eta.meters) }}</span>
+					</div>
+				</div>
+			</div>
+
+			<div v-if="rider" class="panel">
 				<h2>Rider Location</h2>
 				<div class="info-grid">
 					<div class="info-item">
 						<span class="info-label">Latitude:</span>
-						<span class="info-value">{{ riderLocation.latitude.toFixed(6) }}</span>
+						<span class="info-value">{{ rider.latitude.toFixed(6) }}</span>
 					</div>
 					<div class="info-item">
 						<span class="info-label">Longitude:</span>
-						<span class="info-value">{{ riderLocation.longitude.toFixed(6) }}</span>
+						<span class="info-value">{{ rider.longitude.toFixed(6) }}</span>
 					</div>
-					<div v-if="riderLocation.speed" class="info-item">
+					<div v-if="rider.speed !== null" class="info-item">
 						<span class="info-label">Speed:</span>
-						<span class="info-value">{{ riderLocation.speed.toFixed(1) }} km/h</span>
+						<!-- The SDK reports metres per second. -->
+						<span class="info-value">{{ (rider.speed * 3.6).toFixed(1) }} km/h</span>
 					</div>
 				</div>
 			</div>
@@ -64,179 +78,61 @@
 			<div class="panel">
 				<h2>Event Log</h2>
 				<div class="event-log">
-					<div v-if="events.length === 0" class="empty-state">
-						No events yet. Waiting for updates...
-					</div>
-					<div v-for="event in events" :key="event.id" class="event-item">
+					<div v-if="events.length === 0" class="empty-state">No events yet. Waiting for updates...</div>
+					<div v-for="event in events" :key="`${event.type}-${event.at}`" class="event-item">
 						<div class="event-header">
-							<span class="event-time">{{ event.time }}</span>
+							<span class="event-time">{{ new Date(event.at).toLocaleTimeString() }}</span>
 							<span class="event-type">{{ event.type }}</span>
 						</div>
-						<pre class="event-data">{{ event.data }}</pre>
+						<pre class="event-data">{{ JSON.stringify(event.payload, null, 2) }}</pre>
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<footer class="footer">
-			<p>
-				Powered by <strong>@relay-sdk/sdk-browser</strong> + Vue 3
-			</p>
+			<p>Powered by <strong>@relay-sdk/vue</strong></p>
 		</footer>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { RelayRealtimeClient } from '@relay-sdk/sdk-browser';
-import type {
-	Location,
-	TaskAssignedEvent,
-	RiderLocationUpdateEvent,
-	TaskCompletedEvent,
-} from '@relay-sdk/sdk-browser';
+import { computed } from 'vue';
+import { useEtaCountdown, useTaskTracker } from '@relay-sdk/vue';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 const TASK_ID = import.meta.env.VITE_TASK_ID || 'task-demo-123';
 
-interface EventLog {
-	id: number;
-	time: string;
-	type: string;
-	data: string;
+const STATUS_COLORS: Record<string, string> = {
+	PENDING: '#f59e0b',
+	OFFERED: '#f59e0b',
+	ASSIGNED: '#8b5cf6',
+	IN_PROGRESS: '#06b6d4',
+	COMPLETED: '#10b981',
+	FAILED: '#ef4444',
+	CANCELLED: '#ef4444',
+};
+const CONNECTION_COLORS: Record<string, string> = {
+	live: '#10b981',
+	connecting: '#f59e0b',
+	reconnecting: '#f59e0b',
+	offline: '#ef4444',
+	idle: '#6b7280',
+};
+
+// One composable tracks the task: status, rider position, live ETA, events and connection state.
+const { status, rider, eta, events, connection, error, currentStageIndex } = useTaskTracker(TASK_ID);
+const secondsLeft = useEtaCountdown(eta);
+
+const statusColor = computed(() => STATUS_COLORS[status.value ?? 'PENDING'] ?? '#6b7280');
+const connectionColor = computed(() => CONNECTION_COLORS[connection.value]);
+
+function formatDistance(meters: number) {
+	return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
 }
 
-// State
-const relay = ref<RelayRealtimeClient | null>(null);
-const connectionState = ref('disconnected');
-const taskStatus = ref('PENDING');
-const riderId = ref<string | null>(null);
-const riderLocation = ref<Location | null>(null);
-const events = ref<EventLog[]>([]);
-const error = ref<string | null>(null);
-let eventId = 0;
-
-// Computed colors
-const connectionColor = computed(() => {
-	const colors: Record<string, string> = {
-		connected: '#10b981',
-		connecting: '#f59e0b',
-		reconnecting: '#f59e0b',
-		disconnected: '#ef4444',
-		error: '#ef4444',
-	};
-	return colors[connectionState.value] || '#6b7280';
-});
-
-const statusColor = computed(() => {
-	const colors: Record<string, string> = {
-		PENDING: '#f59e0b',
-		ASSIGNED: '#8b5cf6',
-		IN_PROGRESS: '#06b6d4',
-		COMPLETED: '#10b981',
-		FAILED: '#ef4444',
-		CANCELLED: '#ef4444',
-	};
-	return colors[taskStatus.value] || '#6b7280';
-});
-
-// Methods
-const addEvent = (type: string, data: any) => {
-	events.value.unshift({
-		id: eventId++,
-		time: new Date().toLocaleTimeString(),
-		type,
-		data: JSON.stringify(data, null, 2),
-	});
-	// Keep last 10 events
-	if (events.value.length > 10) {
-		events.value.pop();
-	}
-};
-
-const initializeRelay = async () => {
-	try {
-		error.value = null;
-
-		// Initialize Relay client
-		const client = new RelayRealtimeClient({
-			getToken: async (taskIds) => {
-				const res = await fetch(`${BACKEND_URL}/api/session-token`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ taskIds }),
-				});
-
-				if (!res.ok) throw new Error('Failed to get session token');
-				return (await res.json()).token;
-			},
-		});
-		relay.value = client;
-
-		// Connection events
-		client.on('CONNECTION_OPEN', () => {
-			connectionState.value = 'connected';
-			addEvent('CONNECTION_OPEN', { state: 'connected' });
-		});
-
-		client.on('CONNECTION_CLOSE', (event) => {
-			connectionState.value = 'disconnected';
-			addEvent('CONNECTION_CLOSE', event);
-		});
-
-		client.on('CONNECTION_ERROR', (event) => {
-			connectionState.value = 'error';
-			error.value = event.error.message;
-			addEvent('CONNECTION_ERROR', event);
-		});
-
-		client.on('CONNECTION_RECONNECTING', (event) => {
-			connectionState.value = 'reconnecting';
-			addEvent('CONNECTION_RECONNECTING', event);
-		});
-
-		// Task events
-		client.on('TASK_ASSIGNED', (event: TaskAssignedEvent) => {
-			taskStatus.value = 'ASSIGNED';
-			riderId.value = event.riderId;
-			addEvent('TASK_ASSIGNED', event);
-		});
-
-		client.on('TASK_IN_PROGRESS', (event) => {
-			taskStatus.value = 'IN_PROGRESS';
-			addEvent('TASK_IN_PROGRESS', event);
-		});
-
-		client.on('TASK_COMPLETED', (event: TaskCompletedEvent) => {
-			taskStatus.value = 'COMPLETED';
-			addEvent('TASK_COMPLETED', event);
-		});
-
-		client.on('RIDER_LOCATION_UPDATE', (event: RiderLocationUpdateEvent) => {
-			riderLocation.value = event.location;
-			addEvent('RIDER_LOCATION_UPDATE', event);
-		});
-
-		client.on('TOKEN_EXPIRING', (event) => {
-			addEvent('TOKEN_EXPIRING', event);
-		});
-
-		// Subscribe to task
-		await client.listen(TASK_ID);
-	} catch (err: any) {
-		console.error('Initialization error:', err);
-		error.value = err.message;
-	}
-};
-
-// Lifecycle
-onMounted(() => {
-	initializeRelay();
-});
-
-onUnmounted(() => {
-	relay.value?.disconnect();
-});
+function formatCountdown(seconds: number) {
+	return seconds < 60 ? 'under a minute' : `${Math.ceil(seconds / 60)} min`;
+}
 </script>
 
 <style scoped>
@@ -406,5 +302,18 @@ onUnmounted(() => {
 	text-align: center;
 	color: var(--text-secondary);
 	font-size: 0.875rem;
+}
+
+.eta-panel {
+	border-color: #10b981;
+}
+
+.eta-headline {
+	margin-bottom: 1rem;
+	font-size: 1.25rem;
+}
+
+.eta-headline strong {
+	color: #10b981;
 }
 </style>

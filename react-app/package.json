@@ -1,7 +1,7 @@
 {
   "name": "relay-react-app-example",
   "version": "1.0.0",
-  "description": "Example React app using Relay Browser SDK",
+  "description": "Example React app using the Relay React SDK",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@relay-sdk/sdk-browser": "^1.4.0",
+    "@relay-sdk/react": "^1.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

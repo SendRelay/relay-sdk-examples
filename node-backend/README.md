@@ -15,7 +15,7 @@ Complete Node.js/Express backend demonstrating the Relay Server SDK (`@relay-sdk
 ## Prerequisites
 
 - Node.js 18+
-- Relay API key (get from [sendrelay.com.ng](https://sendrelay.com.ng))
+- A Relay API key from the [dashboard](https://dashboard.sendrelay.com.ng). Start with an `sk_test_` key: test tasks play out as simulated deliveries and never move money.
 
 ## Setup
 
@@ -36,10 +36,12 @@ cp .env.example .env
 Add your Relay API key:
 
 ```env
-RELAY_API_KEY=sk_live_your_api_key_here
+RELAY_API_KEY=sk_test_your_api_key_here
 RELAY_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 PORT=3001
 ```
+
+`RELAY_BASE_URL` is only for running against a local Relay API (for example `http://127.0.0.1:8790`). Leave it empty to use production.
 
 ### 3. Run Development Server
 
@@ -149,6 +151,8 @@ Content-Type: application/json
 
 For `PASSENGER_RIDE` tasks, use `stages[].passengers` (and `items: []`) instead of cargo `items`.
 
+With an `sk_test_` key, add `"simulationOutcome": "SUCCESS"` to watch a full simulated delivery, with a virtual rider moving and a live ETA, in the [React](../react-app/) or [Vue](../vue-app/) example. Other outcomes (`NO_RIDERS`, `CANCEL_AFTER_ACCEPT`, ...) are listed in the [simulation docs](https://docs.sendrelay.com.ng/simulation).
+
 ### Get Task
 
 ```bash
@@ -187,19 +191,15 @@ Authenticate this endpoint and verify task ownership before using it in producti
 
 ## Webhook Handling
 
-This example includes webhook signature verification:
+This example verifies webhook signatures. Verify the raw request body exactly as it arrived: re-serialising the parsed JSON can change it and break the signature.
 
 ```typescript
 app.post('/api/webhooks/relay', async (req, res) => {
   const signature = req.headers['x-relay-signature'] as string;
   const secret = process.env.RELAY_WEBHOOK_SECRET!;
+  const rawBody = req.rawBody.toString('utf8'); // kept by the express.json() verify hook
 
-  // Verify signature
-  const verification = relay.webhooks.verifySignature(
-    JSON.stringify(req.body),
-    signature,
-    secret
-  );
+  const verification = relay.webhooks.verifySignature(rawBody, signature, secret);
 
   if (!verification.valid) {
     return res.status(401).json({ error: 'Invalid signature' });
@@ -344,7 +344,7 @@ Ensure these are set in production:
 
 ## Learn More
 
-- [Relay Server SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-node)
+- [Node SDK documentation](https://docs.sendrelay.com.ng/sdks/node-sdk)
 - [API Reference](https://docs.sendrelay.com.ng/api-reference)
 - [Webhook Events](https://docs.sendrelay.com.ng/webhooks)
 

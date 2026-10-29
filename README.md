@@ -4,47 +4,47 @@ Official examples for the Relay Delivery Platform SDKs.
 
 These examples demonstrate how to integrate Relay into your applications using our published npm packages.
 
-## 📦 Available SDKs
+## 📦 SDKs used here
 
-- **[@relay-sdk/sdk-node](https://www.npmjs.com/package/@relay-sdk/sdk-node)** - Server-side SDK for Node.js
-- **[@relay-sdk/sdk-browser](https://www.npmjs.com/package/@relay-sdk/sdk-browser)** - Browser SDK for real-time WebSocket updates
+- **[@relay-sdk/sdk-node](https://www.npmjs.com/package/@relay-sdk/sdk-node)** - Server SDK: tasks, webhooks and tracking tokens
+- **[@relay-sdk/react](https://www.npmjs.com/package/@relay-sdk/react)** - React hooks for live tracking
+- **[@relay-sdk/vue](https://www.npmjs.com/package/@relay-sdk/vue)** - Vue composables for live tracking
+
+Relay also has SDKs for Python, Go, Java, Svelte, React Native, Flutter, Swift and Kotlin. See [Choosing an SDK](https://docs.sendrelay.com.ng/sdks).
 
 ## 🚀 Examples
 
 ### Backend Examples
 
-- **[Node.js Backend](./node-backend/)** - Express server with task management and webhook handling
+- **[Node.js Backend](./node-backend/)** - Express server with task management, webhook handling and tracking tokens
 - **[Next.js API Routes]** - (*todo)  Full-stack Next.js app with API routes
 
 ### Frontend Examples
 
-- **[React App](./react-app/)** - Real-time task tracking with React
+- **[React App](./react-app/)** - Live tracking with status, rider location and live ETA, using `useTaskTracker`
 - **[Next.js Full-Stack]** - (*todo) Complete Next.js application
-- **[Vue App](./vue-app/)** - Task tracking with Vue 3
+- **[Vue App](./vue-app/)** - The same tracker in Vue 3, using the `useTaskTracker` composable
 
 ## 🔑 Getting Started
 
 ### 1. Get Your API Key
 
-Sign up at [sendrelay.com.ng](https://dashboard.sendrelay.com.ng) and get your API key from the dashboard.
+Sign up at [dashboard.sendrelay.com.ng](https://dashboard.sendrelay.com.ng) and create an API key. Start with an `sk_test_` key: test tasks play out as simulated deliveries, with a virtual rider and a live ETA, and never move money.
 
-### 2. Choose an Example
+### 2. Run the backend
 
-Each example has its own README with setup instructions. All examples are standalone and production-ready.
+The frontends never hold your API key. They ask the backend for a short-lived tracking token, so start [node-backend](./node-backend/) first.
 
-### 3. Install Dependencies
+### 3. Create a task and track it
 
-All examples use the published npm packages:
-
-```bash
-npm install @relay-sdk/sdk-node @relay-sdk/sdk-browser
-```
+Create a task through the backend with `"simulationOutcome": "SUCCESS"`, put its id in the React or Vue app's `.env`, and run the app. Each example's README has the steps.
 
 ## 📚 Documentation
 
-- [Server SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-node)
-- [Browser SDK Documentation](https://www.npmjs.com/package/@relay-sdk/sdk-browser)
-- [Flutter SDK Documentation](https://pub.dev/packages/relay_flutter)
+- [Node SDK](https://docs.sendrelay.com.ng/sdks/node-sdk)
+- [React SDK](https://docs.sendrelay.com.ng/sdks/react-sdk)
+- [Vue SDK](https://docs.sendrelay.com.ng/sdks/vue-sdk)
+- [Live tracking guide](https://docs.sendrelay.com.ng/tracking)
 - [API Reference](https://docs.sendrelay.com.ng/api-reference)
 - [Webhook Events](https://docs.sendrelay.com.ng/webhooks)
 
