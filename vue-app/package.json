@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@relay-sdk/vue": "^1.7.0",
+    "@relay-sdk/vue": "^1.8.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {
